@@ -1,6 +1,6 @@
 /** 
 * Scopes Needed:
-*   'employee:inventory'	// View, create, update, and archive items and inventory.
+*   'employee:all'	// View, create, update, and archive items and inventory.
 *   'employee:customers'	// View, create, update, and archive customers.    
 *
 * https://cloud.lightspeedapp.com/oauth/authorize.php?response_type=code&client_id={client_id}&scope=employee:inventory+employee:customers
@@ -13,8 +13,10 @@
 * googe link https://cloud.lightspeedapp.com/oauth/authorize.php?scope=employee%3Ainventory+employee%3Acustomers&redirect_uri=https%3A%2F%2Fdevelopers.google.com%2Foauthplayground&response_type=code&client_id=51f4482883eaf70aa3d9b7e586798fe1ac305ac138f46398fd3fedfa3821c059&access_type=offline
 *
 */
-  
+////////////////////////////////////////////////////////////////////////////
 // configure the service
+////////////////////////////////////////////////////////////////////////////
+
 function getDragonLight() {
 var scriptProperties = PropertiesService.getScriptProperties();
 Logger.log(scriptProperties);
@@ -31,16 +33,20 @@ Logger.log(scriptProperties);
 //    .setScope('employee:customers_read+employee:customers+employee:admin_employees+employee:admin_shops+employee:admin+employee:reports+employee:register_read+employee:register'); 
 }
 
-
+////////////////////////////////////////////////////////////////////////////
 // Logs the redict URI to register
 // can also get this from File > Project Properties
+////////////////////////////////////////////////////////////////////////////
+
 function logRedirectUri() {
   var service = getDragonLight();
   console.log(service.getRedirectUri());
 }
 
-
+////////////////////////////////////////////////////////////////////////////
 // handle the callback
+///////////////////////////////////////////////////////////////////////////
+
 function authCallback(request) {
   var dragonLight = getDragonLight();
   var isAuthorized = dragonLight.handleCallback(request);
