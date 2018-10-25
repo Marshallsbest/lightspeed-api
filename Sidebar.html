@@ -24,29 +24,52 @@
   <body>
     <!-- Below is the HTML code that defines the sidebar element structure. -->
     <cursor></cursor><div class="sidebar branding-below">
-      <p>
-        This sidebar allows you to pull a value from a cell into the sidebar
-        and place a value from the sidebar into a cell.
-      </p>
-      <div class="block form-group" id="sidebar-value-block">
-        <label for="sidebar-value">Sidebar value:</label>
-        <input id="sidebar-value" value="1">
-      </div>
-      <div class="block" id="sidebar-button-bar">
-        <button id="sidebar-pull-button">Pull</button>
-        <button id="sidebar-put-button">Put</button>
-      </div>
-      <div id="sidebar-status"></div>
+    <div class="block form-group" id="sidebar-value-block">
+   <!-- <label for="sidebar-value">Sidebar value:</label>
+    <input id="sidebar-value" value="1">  -->
+      <label for="sidebar-info-select">
+        Select the info to get:
+      </label>
+      <select class="width-100" id="sidebar-info-select">
+        <option value="Order">Orders</option>
+        <option value="Sale">Sales</option>
+        <option value="Customer">Customer</option>
+        <option value="Shop">Shop</option>
+        <option value="Employee">Employee</option>
+        <option value="Salelines">Sales Line</option>
+        <option value="OrderLines">Order Line</option>
+        </select>
+        <div class="spacer">
+          <br/>
+        </div>
+        <label for="sidebar-shop-select">
+        Select the shop to view:
+        </label>
+      <select class="width-100" id="sidebar-shop-select">
+        <option value='5'>Brampton</option>
+        <option value='1'>Georgetown</option>
+        <option value='6'>Dixie 401</option>
+        <option value='2'>Milton</option>
+        <option value='3'>5 and 10</option>
+        <option value='4'>Fergus</option>
+        <option value='7'>Hamilton</option>
+      </select>
+       <br/>
+    <div class="block" id="sidebar-button-bar">
+      <button id="sidebar-info-button">Call Info</button>
+      <button id="sidebar-shop-button">Set Shop</button>
     </div>
-
+    <div id="sidebar-status"></div>
+    </div>
+    </div>
     <!-- Enter sidebar bottom-branding below. -->
     <div class="sidebar bottom">
-      <img alt="Add-on logo" class="logo" width="25"
-          src="https://drive.google.com/file/d/1tSsn3c7gS315UjIyF1ZDthKgBbtuv1gueg/view?usp=sharing">
-      <span class="gray branding-text">Spreadsheet Add-on Template by Google</span>
+    <img alt="Add-on logo" class="logo" width="25"
+    src="https://www.google.com/intl/en_US/sheets/about/images/sheets-2x/addons.png">
+    <span class="gray branding-text">Spreadsheet Add-on Template by Google</span>
     </div>
-
+    
     <!-- Use a templated HTML printing scriptlet to import JavaScript. -->
     <?!= HtmlService.createHtmlOutputFromFile('SidebarJavaScript').getContent(); ?>
-  </body>
-</html>
+    </body>
+    </html>

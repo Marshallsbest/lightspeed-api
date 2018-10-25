@@ -21,8 +21,8 @@
    */
   $(function() {
     // Assign handler functions to sidebar elements here, if needed.
-    $('#sidebar-pull-button').click(onPullClick);
-    $('#sidebar-put-button').click(onPutClick);
+    $('#sidebar-info-button').click(onPullClick);
+    $('#sidebar-shop-button').click(onPutClick);
 
     // Call the server here to retrieve any information needed to build
     // the dialog, if necessary.
@@ -33,9 +33,42 @@
    * Gets the value in the active cell, which is then placed in the
    * sidebar text field.
    */
-  function onPullClick() {
+  
+  /**
+   * Calls the server to modify the sheet.
+   * Replace the currently selected cell value with the value in the
+   * sidebar text field.
+   */
+  function onPutClick() {
     this.disabled = true;
-
+    
+    // Gather any information that needs to be sent to the server here.
+   
+    var shopID = $('#sidebar-shop-select').val();
+    Logger.log("Value",shopID);
+    // Send the value to the server and handle the response.
+    google.script.run
+        .withSuccessHandler(
+          function(msg, element){
+            // Respond to success conditions here.
+            showStatus('Cell set to reference value: ' + shopID);
+            element.disabled = false;
+          })
+        .withFailureHandler(
+          function(msg, element){
+            // Respond to failure conditions here.
+            showStatus(msg, 'error');
+            element.disabled = false;
+          })
+        .withUserObject(this)
+        .setActiveID(shopID);
+  };
+  
+function onPullClick() {
+      onPutClick();
+    this.disabled = true;
+     var infoValue =  $('#sidebar-info-select', function(e) {
+      this.options[e.target.selectedIndex].val;});
     // Gather any information that needs to be sent to the server here.
 
     // Send the value to the server and handle the response.
@@ -54,36 +87,7 @@
             element.disabled = false;
           })
         .withUserObject(this)
-        .getActiveValue();
-  }
-
-  /**
-   * Calls the server to modify the sheet.
-   * Replace the currently selected cell value with the value in the
-   * sidebar text field.
-   */
-  function onPutClick() {
-    this.disabled = true;
-
-    // Gather any information that needs to be sent to the server here.
-    var value = $('#sidebar-value').val();
-
-    // Send the value to the server and handle the response.
-    google.script.run
-        .withSuccessHandler(
-          function(msg, element) {
-            // Respond to success conditions here.
-            showStatus('Cell set to reference value: ' + value);
-            element.disabled = false;
-          })
-        .withFailureHandler(
-          function(msg, element) {
-            // Respond to failure conditions here.
-            showStatus(msg, 'error');
-            element.disabled = false;
-          })
-        .withUserObject(this)
-        .setActiveValue(value);
+        .setActiveSheet(infoValue);
   }
 
   /**

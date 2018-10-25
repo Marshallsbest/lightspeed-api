@@ -55,4 +55,13 @@ function authCallback(request) {
   } else {
     return HtmlService.createHtmlOutput('Denied. You can close this tab');
   }
-}
+};
+
+function reAuth(service){  var ui = SpreadsheetApp.getUi();
+      var authorizationUrl = service.getAuthorizationUrl();
+      var result = ui.alert("Authorize Lightspeed", "Click OK to see the link to copy and paste in to your browser to authorize the app", ui.ButtonSet.OK_CANCEL);
+      if (result == ui.Button.OK) {ui.alert(authorizationUrl)}// User clicked "Yes"
+      else {ui.alert('Permission denied.')}// User clicked "No" or X in the title bar
+      Logger.log('Open the following URL and re-run the script: %s',authorizationUrl);
+      return service
+      };

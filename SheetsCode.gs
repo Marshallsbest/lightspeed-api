@@ -1,116 +1,123 @@
+//////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+// == -- Micro Funcitons designed to be used by multiple processes -- == \\
+//////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+// == -- Change the strings returned in to date objects for the Spreadsheet to recognize properly -- == \\
+function fixDates(dataRow){
+  if(dataRow.orderedDate){
+    var orDate = new Date(dataRow.orderedDate).toJSON();
+     dataRow.orderedDate = new Date(orDate);
+  };
+  if(dataRow.receivedDate){
+    var reDate = new Date(dataRow.receivedDate).toJSON();
+     dataRow.receivedDate = new Date(reDate);
+  };
+  if(dataRow.timeStamp){
+    var tsDate = new Date(dataRow.timeStamp).toJSON();
+     dataRow.timeStamp = new Date(tsDate);
+  };
+  if(dataRow.createTime){
+    var crDate = new Date(dataRow.createTime).toJSON();
+     dataRow.createTime = new Date(crDate);
+  };
+  if(dataRow.updateTime){
+    var upDate = new Date(dataRow.updateTime).toJSON();
+     dataRow.updateTime = new Date(upDate);
+  };
+  if(dataRow.dob){
+    var dbDate = new Date(dataRow.dob).toJSON();
+     dataRow.dob = new Date(dbDate);
+  };
+  if(dataRow.arrivalDate){
+    var arDate = new Date(dataRow.arrivalDate).toJSON();
+     dataRow.arrivalDate = new Date(arDate);
+  };
+  if(dataRow.completeTime){
+    var cpDate = new Date(dataRow.completeTime).toJSON();
+    dataRow.completeTime = new Date(cpDate);
+    
+  };
+  var createDay = dataRow.createTime;
+  var createMonth = dataRow.createTime;
+  dataRow.createDay = createDay;
+  dataRow.createMonth = createMonth;
+  dataRow.time = dataRow.createTime;
+//  dataRow.hour = createHour;
+  return dataRow
+};
 
 
-
-// getRowsData iterates row by row in the input range and returns an array of objects.
-// Each object contains all the data for a given row, indexed by its normalized column name.
-// Arguments:
-//   - sheet: the sheet object that contains the data to be processed
-//   - range: the exact range of cells where the data is stored
-//   - columnHeadersRowIndex: specifies the row number where the column names are stored.
-//       This argument is optional and it defaults to the row immediately above range;
-// Returns an Array of objects.
-function getRowsData(sheet, range, columnHeadersRowIndex) {
-  columnHeadersRowIndex = columnHeadersRowIndex || range.getRowIndex() - 1;
-  var numColumns = range.getEndColumn() - range.getColumn() + 1;
-  var headersRange = sheet.getRange(columnHeadersRowIndex, range.getColumn(), 1, numColumns);
-  var headers = headersRange.getValues()[0];
-  return getObjects(range.getValues(), normalizeHeaders(headers));
-}
-
-// For every row of data in data, generates an object that contains the data. Names of
-// object fields are defined in keys.
-// Arguments:
-//   - data: JavaScript 2d array
-//   - keys: Array of Strings that define the property names for the objects to create
-function getObjects(data, keys) {
-  var objects = [];
-  for (var i = 0; i < data.length; ++i) {
-    var object = {};
-    var hasData = false;
-    for (var j = 0; j < data[i].length; ++j) {
-      var cellData = data[i][j];
-      if (isCellEmpty(cellData)) {
-        continue;
-      }
-      object[keys[j]] = cellData;
-      hasData = true;
-    }
-    if (hasData) {
-      objects.push(object);
-    }
+/////////////////////////////////////////////////////////////////////////
+// Clear Date Sheet
+////////////////////////////////////////////////////////////////////////
+function clearSheet(headerRows, sheet){
+  if(sheet.getFrozenRows()>0){
+    headerRows = sheet.getFrozenRows()
+    sheet.getRange(headerRows+1, 1, sheet.getLastRow(), sheet.getMaxColumns()).clear({contentsOnly:true});
+    return sheet
   }
-  return objects;
 }
 
-// Returns an Array of normalized Strings.
-// Arguments:
-//   - headers: Array of Strings to normalize
-function normalizeHeaders(headers) {
-  var keys = [];
-  for (var i = 0; i < headers.length; ++i) {
-    var key = normalizeHeader(headers[i]);
-    if (key.length > 0) {
-      keys.push(key);
+
+////////////////////////////////////////////////////////////////////////////////////
+// This Assigns the item description, category and qty to the corresponding columns 
+////////////////////////////////////////////////////////////////////////////////////
+function fixItems(dataRow){
+  var saleItemQty=0;
+  var sLine = dataRow.SaleLines.SaleLine;
+  if(Array.isArray(sLine)){
+    for(var j = 0; j<sLine.length; j++){
+      var desc = 'LineItemDesc'+j;
+      var qty = 'LineItemQty'+j;
+      var cat = 'LineItemCat'+j;
+      dataRow[desc] = sLine[j].Item.description;
+      dataRow[qty] = sLine[j].unitQuantity;
+      dataRow[cat] = sLine[j].Item.categoryID;
+      saleItemQty = Number(saleItemQty)+Number(sLine[j].unitQuantity);
     }
+  }else {
+    dataRow.LineItemDesc0 = sLine.Item.description;
+    dataRow.LineItemQty0 = sLine.unitQuantity;
+    dataRow.LineItemCat0 = sLine.Item.categoryID;
+    saleItemQty = Number(saleItemQty) + Number(sLine.unitQuantity);
   }
-  return keys;
+  dataRow.SaleItemQty = saleItemQty;
+  return dataRow;
 }
 
-// Normalizes a string, by removing all alphanumeric characters and using mixed case
-// to separate words. The output will always start with a lower case letter.
-// This function is designed to produce JavaScript object property names.
-// Arguments:
-//   - header: string to normalize
-// Examples:
-//   "First Name" -> "firstName"
-//   "Market Cap (millions) -> "marketCapMillions
-//   "1 number at the beginning is ignored" -> "numberAtTheBeginningIsIgnored"
-function normalizeHeader(header) {
-  var key = "";
-  var upperCase = false;
-  for (var i = 0; i < header.length; ++i) {
-    var letter = header[i];
-    if (letter == " " && key.length > 0) {
-      upperCase = true;
-      continue;
-    }
-    //if (!isAlnum(letter)) {
-    //  continue;
-    //}
-    if (key.length == 0 && isDigit(letter)) {
-      continue; // first character must be a letter
-    }
-    if (upperCase) {
-      upperCase = false;
-      key += letter.toUpperCase();
-    } else {
-      key += letter.toLowerCase();
-    }
-  }
-  return key;
+
+///////////////////////////////////////////////////////////////////////////////////////
+// Gets All sale ID tags and finds the largest in hte column
+///////////////////////////////////////////////////////////////////////////////////////
+function getCurrentSaleID(sheetName){
+  var s = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  var headers = s.getRange(1,1,1,s.getLastColumn()).getValues();
+  var colIndex = headers[0].indexOf("saleID")+1;
+  var column = s.getRange(2, colIndex,s.getLastRow()).getValues().sort(function(a, b){return a-b}).pop();
+  var saleID = column.reduce(function(previous,current) {
+    if(previous>current){current = previous}
+    return current;
+  },0);
+  return saleID
 }
 
-// Returns true if the cell where cellData was read from is empty.
-// Arguments:
-//   - cellData: string
-function isCellEmpty(cellData) {
-  return typeof(cellData) == "string" && cellData == "";
-}
 
-// Returns true if the character char is alphabetical, false otherwise.
-function isAlnum(char) {
-  return char >= 'A' && char <= 'Z' ||
-    char >= 'a' && char <= 'z' ||
-    isDigit(char);
-}
-
-// Returns true if the character char is a digit, false otherwise.
-function isDigit(char) {
-  return char >= '0' && char <= '9';
-}
-// http://jsfromhell.com/array/chunk
-function chunk(a, s){
-    for(var x, i = 0, c = -1, l = a.length, n = []; i < l; i++)
-        (x = i % s) ? n[c][x] = a[i] : n[++c] = [a[i]];
-    return n;
+///////////////////////////////////////////////////////////////////////////////////////
+// Set Column Formating 
+///////////////////////////////////////////////////////////////////////////////////////
+function formatColumns(sheetName){
+  var s = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  var headers = s.getRange(1,1,1,s.getLastColumn()).getValues();
+  var colIndex = headers[0].indexOf("createDay")+1;
+  var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("DDDD");
+  var colIndex = headers[0].indexOf("createMonth")+1;
+  var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("MMMM");
+  var colIndex = headers[0].indexOf("createTime")+1;
+  var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("yyyy-MM-dd");
+  var colIndex = headers[0].indexOf("updateTime")+1;
+  var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("yyyy-MM-dd");
+  var colIndex = headers[0].indexOf("completeTime")+1;
+  var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("yyyy-MM-dd");
+  var colIndex = headers[0].indexOf("time")+1;
+  var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("HH:mm:ss");
 }
