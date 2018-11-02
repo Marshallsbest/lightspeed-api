@@ -18,19 +18,19 @@
 ////////////////////////////////////////////////////////////////////////////
 
 function getDragonLight() {
-var scriptProperties = PropertiesService.getScriptProperties();
-Logger.log(scriptProperties);
+  var scriptProperties = PropertiesService.getScriptProperties();
+  Logger.log(scriptProperties);
   return OAuth2.createService('Dragon')
-    .setParam("response_type","code")
-    .setAuthorizationBaseUrl(scriptProperties.getProperty('ACCESS_URL'))
-    .setTokenUrl(scriptProperties.getProperty('TOKEN_URL'))
-    .setClientId(scriptProperties.getProperty('CLIENT_ID'))
-    .setClientSecret(scriptProperties.getProperty('CLIENT_SECRET'))
-    .setCallbackFunction('authCallback')
-    .setPropertyStore(PropertiesService.getScriptProperties())
-    .setCache(CacheService.getScriptCache())
-    .setScope('employee:all')
-//    .setScope('employee:customers_read+employee:customers+employee:admin_employees+employee:admin_shops+employee:admin+employee:reports+employee:register_read+employee:register'); 
+  .setParam("response_type","code")
+  .setAuthorizationBaseUrl(scriptProperties.getProperty('ACCESS_URL'))
+  .setTokenUrl(scriptProperties.getProperty('TOKEN_URL'))
+  .setClientId(scriptProperties.getProperty('CLIENT_ID'))
+  .setClientSecret(scriptProperties.getProperty('CLIENT_SECRET'))
+  .setCallbackFunction('authCallback')
+  .setPropertyStore(PropertiesService.getScriptProperties())
+  .setCache(CacheService.getScriptCache())
+  .setScope('employee:all')
+  //    .setScope('employee:customers_read+employee:customers+employee:admin_employees+employee:admin_shops+employee:admin+employee:reports+employee:register_read+employee:register'); 
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -57,11 +57,25 @@ function authCallback(request) {
   }
 };
 
-function reAuth(service){  var ui = SpreadsheetApp.getUi();
-      var authorizationUrl = service.getAuthorizationUrl();
-      var result = ui.alert("Authorize Lightspeed", "Click OK to see the link to copy and paste in to your browser to authorize the app", ui.ButtonSet.OK_CANCEL);
-      if (result == ui.Button.OK) {ui.alert(authorizationUrl)}// User clicked "Yes"
-      else {ui.alert('Permission denied.')}// User clicked "No" or X in the title bar
-      Logger.log('Open the following URL and re-run the script: %s',authorizationUrl);
-      return service
-      };
+
+/**
+*
+* Throw and Alert box up with the url to re Authorize th etoken if needed
+*
+*/
+function reAuth(service){  
+  var ui = SpreadsheetApp.getUi();
+  var authorizationUrl = service.getAuthorizationUrl();
+  var result = ui.alert("Authorize Lightspeed", "Click OK to see the link to copy and paste in to your browser to authorize the app", ui.ButtonSet.OK_CANCEL);
+  if (result == ui.Button.OK) {ui.alert(authorizationUrl)}// User clicked "Yes"
+  else {ui.alert('Permission denied.')}// User clicked "No" or X in the title bar
+  Logger.log('Open the following URL and re-run the script: %s',authorizationUrl);
+  return service
+};
+
+/**
+*Reset The OAuth Service
+*/
+function reset(){
+  getDragonLight().reset();
+}

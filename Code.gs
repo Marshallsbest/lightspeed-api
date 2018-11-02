@@ -1,26 +1,54 @@
 ///////////////////////////////////////////////////////////////
-// Get the login email of the effective user logged in 
 // ad custom menu when the spread sheet opens
 ///////////////////////////////////////////////////////////////
+var UIONOFF = true;
 
-var DIALOG_TITLE = 'Authenticate Lightspeed';
-var SIDEBAR_TITLE = 'Lightspeed Integration';
 
 /**
- * Adds a custom menu with items to show the sidebar and dialog. //.createAddonMenu()
+ * Adds a custom menu with items to show the sidebar, dialog and to manually activate the data fetch calls
  *
  * @param {Object} e The event parameter for a simple onOpen trigger.
  */
 function onOpen(e) {
-  SpreadsheetApp.getUi()
-    .createMenu('Dragon Menu')
-    .addItem('Get Me My Data','showSidebar')
-    .addItem('Show sidebar', 'showSidebar')
-    .addItem('Show dialog', 'showDialog')
-    .addItem('Reset Service','reset')
-    .addToUi();
+  var ui = SpreadsheetApp.getUi()
+  ui.createMenu('Dragon Menu')
+  .addSubMenu(ui.createMenu('5&10')
+              .addItem('Update Data', 'updateSaleItems3')
+              .addItem('Reload Data', 'resetSaleItems3'))
+  .addSeparator()
+  .addSubMenu(ui.createMenu('Georgetown')
+              .addItem('Update Data', 'updateSaleItems1')
+              .addItem('Reload Data', 'resetSaleItems1')) 
+  .addSeparator()
+  .addSubMenu(ui.createMenu('Fergus')
+              .addItem('Update Data', 'updateSaleItems4')
+              .addItem('Reload Data', 'resetSaleItems4'))  
+  .addSeparator()
+  .addSubMenu(ui.createMenu('Milton')
+              .addItem('Update Data', 'updateSaleItems2')
+              .addItem('Reload Data', 'resetSaleItems2'))  
+  .addSeparator()
+  .addSubMenu(ui.createMenu('Dixie')
+              .addItem('Update Data', 'updateSaleItems6')
+              .addItem('Reload Data', 'resetSaleItems6'))
+  .addSeparator()
+  .addSubMenu(ui.createMenu('Brampton')
+              .addItem('Update Data', 'updateSaleItems5')
+              .addItem('Reload Data', 'resetSaleItems5')) 
+  .addSeparator()
+  .addSubMenu(ui.createMenu('Dundas')
+              .addItem('Update Data', 'updateSaleItems7')
+              .addItem('Reload Data', 'resetSaleItems7'))  
+  .addSeparator()
+  .addSubMenu(ui.createMenu('Employee')
+              .addItem('Refresh Data', 'employeeData'))
+  .addSubMenu(ui.createMenu('Admin')
+              .addItem('Show sidebar', 'showSidebar')
+              .addItem('Update All', 'upDateAll')
+              .addItem('Reset Service','reset')    
+              .addItem('Reset Object','resetShopObject'))    
+  .addToUi();
 }
-
 
 /**
  * Runs when the add-on is installed; calls onOpen() to ensure menu creation and
@@ -32,97 +60,189 @@ function onInstall(e) {
   onOpen(e);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////
+// == -- UpDate Function for auto reporting set to fire every 5 minutes and retrieve any new sales data based on last salesID -- == \\ 
+////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * Update the Current values to reflect any sales made since the last call
+ */
+function upDateAll(){
+  UIONOFF = false; 
+  //  updateSaleItems1();
+//  log("Shop 1 Called",{})
+  //  updateSaleItems2();
+//  log("Shop 2 Called",{})
+  updateSaleItems3();
+  log("Shop 3 Called",{})
+  //  updateSaleItems4();
+//  log("Shop 4 Called",{})
+  //  updateSaleItems5();
+//  log("Shop 5 Called",{})
+  //  updateSaleItems6();
+  //  updateSaleItems7();
+}
+function updateFergus(){
+  updateSaleItems4()
+}
+////////////////////////////////////////////////////////////////////////////////////////
+// == -- The Main Function Called for retrieving the Data from teh API -- == \\ 
+////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Opens a sidebar. The sidebar structure is described in the Sidebar.html
- * project file.
- */
-function showSidebar(){
-  var ui = HtmlService.createTemplateFromFile('Sidebar')
-      .evaluate()
-      .setTitle(SIDEBAR_TITLE)
-      .setSandboxMode(HtmlService.SandboxMode.IFRAME);
-  SpreadsheetApp.getUi().showSidebar(ui);
+* Main Sales Data Function Call 
+* @param {Object} shopObj - Franchisee object to be passed in 
+* @Param {String} endPoint - name of the main End point to be called
+* @Param {Booleon} clear - Set to true clear the entire contents of the Data sheet and reload the data
+*/
+function getSalesData(shopObj, endPoint, clear){
+  var objSheet = shopObj.salesSheetName;
+  var ssID = shopObj.ID;
+  var ss = SpreadsheetApp.openById(ssID);
+  var sheet = ss.getSheetByName(objSheet);
+  sheet.activate();
+  var saleOffset = objSheet.saleID || getCurrentSaleID(objSheet,ssID);
+  var headerRows = 1 ;
+  var offset = 0;
+  
+  // == -- adjust process for updating info or replacing info -- == \\   
+  if(!clear){ 
+    var url = shopObj.sales+"&saleID=%3D,"+saleOffset;
+    log("URL",url);
+    updateSaleID(shopObj.name,saleOffset)
+  } else {
+    clearSheet(headerRows, sheet);
+    saleOffset = 0;
+  }
+  
+  // == -- Specify the type of call needed -- == \\ 
+  var type = "GET";
+  if(endPoint = "Sale"){
+    // == -- Build the URL with any offsets -- == \\
+    var url = shopObj.sales;
+  } else if(endPoint = "Order"){
+    // == -- Build the URL with any offsets -- == \\
+    var url = shopObj.orders;
+  }
+  //  log("url",url);
+  // == -- Initiate the OAuth / Api Call with the given variables -- == \\ 
+  var data = getData(offset,url,endPoint,type);
+  
+  // == -- Make the call to insert the rows needed for the new data and insert the data -- == \\ 
+  insertData(sheet,data);
 }
 
+/////////////////////////////////////////////////////////////////////////////////////
+// Calling the API to get the Data
+/////////////////////////////////////////////////////////////////////////////////////
 /**
- *Reset The Auth Service
+ * Used to populate the Employee information Object used as a reference during data 
+ * processing of the numerous rows 
+ * @param {Object} employee - Employee object to be passed in 
+ * @Param {String} endPoint - name of the main End point to be called
+ * @Param {Booleon} clear - Set to true clear the entire contents of the Data sheet and reload the data
  */
-function reset(){
-  getDragonLight().reset();
-  }
+function getEmployeeData(employee, endPoint, clear){
+  var ui = SpreadsheetApp.getUi();
+  var ss = SpreadsheetApp.getActive();
+  var sheet = employee.employeeSheet
+  sheet.activate();
+  var headerRows = 1 ;
+  var offset = 0;
+  var url = employee.base;
+   
+  // == -- adjust process for updating info or replacing info -- == \\   
+  if(clear){
+    clearSheet(headerRows, sheet);
+    }
+  
+  // == -- Specify the type of call needed -- == \\ 
+  var type = "GET";
+  if(endPoint == "Hours"){
+    // == -- Build the URL with any offsets -- == \\
+    var url = employee.hours;
+    }
+    
+  // == -- Initiate the OAuth / Api Call with the given variables -- == \\ 
+  var data = getData(offset,url,endPoint,type);
+  
+  // == -- Make the call to insert the rows needed for the new data and insert the data -- == \\ 
+  insertData(sheet,data);
+}
 
-
+////////////////////////////////////////////////////////////////////////////////////////
+// == -- This is used to build the end point used to make calls to Light Speed -- == \\
+////////////////////////////////////////////////////////////////////////////////////////
 /**
- * Build the url from the Named Range on the API sheet 
- * coresponding to the Active sheet name
- * @params {integer} offset  the number at which the returned 100 lines begins 
- * @params {string} url call to the api
- * @params {string} endPoint the name of the end point 
- * @params {string} the type of call to make [GET, POST, PUT, DELETE]
- * @return {Object} data[] 
- */
+* Build the url from the Named Range on the API sheet 
+* coresponding to the Active sheet name
+* @params {integer} offset  the number at which the returned 100 lines begins 
+* @params {string} url call to the api
+* @params {string} endPoint the name of the end point 
+* @params {string} the type of call to make [GET, POST, PUT, DELETE]
+* @return {Object} data[] 
+*/
 function getData(offset,url, endPoint, type){
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var service = getDragonLight();
   var data = [];
   var choice = endPoint;
   var apiUrl;
+  var loopCount = 0;
+  var nonSale = 0;
+  var worker = new DataObject("employeeID","firstName");
   // == -- Get OAuth Token before making the API Call -- == \\ 
   if (service.hasAccess()){
     var loop = true;
     var dataAll = [];   
-  // == -- API limits returned Data to 100 lines, Loop calls till all lines are retrieved -- == \\  
+    // == -- API limits returned Data to 100 lines, Loop calls till all lines are retrieved -- == \\  
     while (loop){
       if(offset <= 0){
-        apiUrl =url;
+        apiUrl = url;
       } else {
         apiUrl = url+"&offset="+offset;
       };
       // == -- Build API Headers -- == \\
-      var headers = {
-        "Authorization": 'Bearer ' + service.getAccessToken(),  
-        "Accept": 'application/json'
-      };
-      var options = {
-        "headers": headers,
-        "method" : type,
-        "muteHttpExceptions": true
-      };
-      
-      // == -- Make The Call to Light Speed -- == \\
-      var response = UrlFetchApp.fetch(apiUrl,options);
+      var response = callApi(apiUrl, service, type)
       var responseHeaders = response.getAllHeaders();
       var obj = JSON.parse(response.getContentText());
-      var objData =  Object.getOwnPropertyDescriptor(obj,choice);
-      var nonSale = 0;
-      for (var i = 0 ; i < objData.value.length; i++ ){
-        var dataRow = objData.value[i];
-        
-        // == -- Check to see if Sale is completed before processing -- == \\
-        if(dataRow.completed == 'false'){
-        nonSale++ ;
-        }else {
-        
-        // == -- Process the Date fields to return proper Date Objects -- == \\ 
-        fixDates(dataRow);
-        
-        // == -- Find and seperate Sale Item Info -- == \\ 
-          fixItems(dataRow);
-        dataAll.push(dataRow); // <- recursive call
-        }
-      }
-     
-     // == -- Check and make repeat calls with offset to get all the needed Data -- == \\
-      var curCount = dataAll.length + nonSale;
       var dataCounts = Object.getOwnPropertyDescriptor(obj, "@attributes");
-//      var dataOffSet = Number(dataCounts.value.offset);
       var count = Number(dataCounts.value.count);
       var limit = Number(dataCounts.value.limit||100);
-      
-      if(count > curCount){
+     
+      var objData =  Object.getOwnPropertyDescriptor(obj,choice);
+//         console.log("objData: ",objData)
+      if(count>0){
+        for (var i = 0 ; i < objData.value.length; i++ ){
+//        console.log("objData.value.length: ",objData.value.length)
+          var dataRow = objData.value[i];
+          // == -- Process the Date fields to return proper Date Objects -- == \\ 
+          fixDates(dataRow);
+          // == -- Check to see if Sale is completed before processing -- == \\
+          if(dataRow.completed){
+            if(dataRow.completed == "false"){
+           nonSale += 1;
+//              console.log("non Sale "+nonSale)
+            }else {
+//            console.log(dataRow.completed)
+            // == -- Find and seperate Sale Item Info -- == \\ 
+              fixItems(dataRow);
+              if(dataRow.employeeID){
+                var ID = dataRow.employeeID
+                dataRow.firstName = worker[ID]
+              }
+              dataAll.push(dataRow); // <- recursive call
+            }
+          }
+        }
+      }else{log("Count is empty",count);return}
+      // == -- Check and make repeat calls with offset to get all the needed Data -- == \\
+      var curCount = Number(dataAll.length) + Number(nonSale);
+//      console.log("Current Count"+curCount+" non Sale "+nonSale+" dataAll size "+dataAll.length )
+      if(count > curCount && loopCount != curCount){
         offset = curCount; 
-        ss.toast("Current Number of rows processed ="+offset+" of "+count);
+        var tally = count - nonSale;
+  if(UIONOFF){ ss.toast("Number of Completed Sales Records Found and Processed ="+dataAll.length+" out of "+curCount+" of "+count);}
+       loopCount = curCount
       } else {
         loop = false
       };
@@ -131,138 +251,41 @@ function getData(offset,url, endPoint, type){
     // == -- Throw up an alert box to get the user the authorization dialog url -- == \\
     reAuth(service)
   }
-  console.log("After data push",dataAll);
+//  var prompt = "There were "+nonSale+" sale Enteries which where not marked as Complete and thereby not Counted in this Spreadsheet";
+//  SpreadsheetApp.getUi().alert(prompt);
   return dataAll;
 }
 
-  /**
-  * the following functions generate the User Objects and start the API call Squence 
-  */
-  
-  function resetSaleItems5(){
-    var brampton = new franchisee("Brampton",5);
-    getSalesData(brampton,"Sale", true)
-  }
-  function updateSaleItems5(){
-    var brampton = new franchisee("Brampton",5);
-    getSalesData(brampton,"Sale", false)
-  }
-  function resetSaleItems7(){
-    var dundas = new franchisee("Dundas",7);
-    getSalesData(dundas,"Sale", true)
-  }
-  function updateSaleItems7(){
-    var dundas = new franchisee("Dundas",7);
-    getSalesData(dundas,"Sale", false)
-  }
-  function resetSaleItems6(){
-    var dixie = new franchisee("Dixie",6);
-    getSalesData(dixie,"Sale", true)
-  }
-  function updateSaleItems6(){
-    var dixie = new franchisee("Dixie",6);
-    getSalesData(dixie,"Sale", false)
-  }
-  function resetSaleItems4(){
-    var fergus = new franchisee("Fergus",4);
-    getSalesData(fergus,"Sale", true)
-  }
-  function updateSaleItems4(){
-    var fergus = new franchisee("Fergus",4);
-    getSalesData(fergus,"Sale", false)
-  }
-  function resetSaleItems2(){
-    var milton = new franchisee("Milton",2);
-    getSalesData(milton,"Sale", true)
-  }
-  function updateSaleItems2(){
-    var milton = new franchisee("Milton",2);
-    getSalesData(milton,"Sale", false)
-  }
-  function resetSaleItems3(){
-    var imran = new franchisee("FiveAndTen",3);
-    getSalesData(imran,"Sale", true)
-  }
-  function updateSaleItems3(){
-    var imran = new franchisee("FiveAndTen",3);
-    getSalesData(imran,"Sale", false)
-  }
-  function resetSaleItems1(){
-    var georgetown = new franchisee("Georgetown",1);
-    getSalesData(georgetown,"Sale", true)
-  }
-  function updateSaleItems1(){
-    var georgetown = new franchisee("Georgetown",1);
-    getSalesData(georgetown,"Sale", false)
-  }
-////////////////////////////////////////////////////////////////////////////////////////
-// == -- The Main Function Called for retrieving the Data from teh API -- == \\ 
-////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * Main Function Call 
- * @param Object - Franchisee object to be passed in 
- * @Param String - name of the main End point to be called
- * @Param Booleon - Set to true clear the entire contents of the Data sheet and reload the data
- */
-function getSalesData(franchise, endPoint, clear){
-  var ui = SpreadsheetApp.getUi();
-  var ss = SpreadsheetApp.getActive();
-  var sheet = franchise.saleItemsSheet
-  var headerRows = 1 ;
-  var offset = 0;
-  var saleOffset;
-
-// == -- adjust process for updating info or replacing info -- == \\   
-  if(!clear){
-    saleOffset = getCurrentSaleID(franchise.saleItemsSheetName);
-  } else {
-    clearSheet(headerRows, sheet);
-    saleOffset = 0;
-  }
-  
-// == -- Specify the type of call needed -- == \\ 
-  var type = "GET";
-  
-// == -- Build the URL with any offsets -- == \\
-  var url = franchise.sales;
-  if(saleOffset > 10){
-  url = franchise.sales+"&saleID=%3E,"+saleOffset
-  }
-
-// == -- Initiate the OAuth / Api Call with the given variables -- == \\ 
-  var data = getData(offset,url,endPoint,type);
-
-// == -- Make the call to insert the rows needed for the new data and insert the data -- == \\ 
-  insertData(sheet,data);
-}
 
 /////////////////////////////////////////////////////////////////////////////////
 // map to a spread sheet
 /////////////////////////////////////////////////////////////////////////////////
-
+/**
+ * Check and make sure the designated sheet has enough rows to recieve the data to be written 
+ * @param {Object} sheet - A Spreadsheet Object that will recieve the Data 
+ * @Param {Object} data - the processed Data to be written to the sheet
+ */
 function  insertData(sheet,data){
-  console.log("INSERT THIS DATA: ",data);
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var dLength = data.length;
   var dataRows = sheet.getLastRow();
-  console.log("dataRows", dataRows);
   var sheetRows = sheet.getMaxRows();
-  console.log("sheetRows", sheetRows);
-  
+  var insertRow = sheet.getLastRow();
   var openRows = Number(sheetRows) - Number(dataRows)
-    ss.toast("row numbers open sheet data : "+openRows+" - "+sheetRows+" - "+dataRows);
+  if(UIONOFF){ ss.toast("row numbers open, sheet, data, : "+openRows+" - "+sheetRows+" - "+dataRows);}
   if (dLength>0){
-  if(openRows < dLength){ 
-    ss.toast("Inserting "+numRows+" rows");
+    if(openRows < dLength){ 
+      if(UIONOFF){ ss.toast("Inserting "+numRows+" rows");}
       var numRows = Number(dLength-openRows);
-      sheet.insertRowsAfter(sheet.getLastRow(), numRows);
+      if(insertRow <2){insertRow=2};
+      sheet.insertRowsAfter(insertRow, numRows);
       
-      }else{
-    ss.toast("row insertion not needed");}
+    }else{
+    if(UIONOFF){ ss.toast("row insertion not needed");}
+      }
     setRowsData(sheet, data);
   } else {
-    ss.toast("Data Not Defined! Nothing to be Written to Sheet");
+    if(UIONOFF){ ss.toast("Data Not Defined! Nothing to be Written to Sheet");}
   };
 };
 
@@ -277,14 +300,20 @@ function  insertData(sheet,data){
 //   - optFirstDataRowIndex: index of the first row where data should be written. This
 //     defaults to the row immediately below the headers.
 ////////////////////////////////////////////////////////////////////////////////////
-
+/**
+ * Write the Data to the Spreadsheet 
+ * @param {Object} sheet - The Spreadsheet to which the data will be written
+ * @Param {Object} objects - The data  to be written to the Sheet
+ * @Param {Object} optHeadersRange - An optional Range object that can be used to define the header area
+ * @Param {Integer} optFirstDataRowIndex - Optional number to used as Row Index to begin the new information at 
+ */
 function setRowsData(sheet, objects, optHeadersRange, optFirstDataRowIndex) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var headersRange = optHeadersRange || sheet.getRange(1, 1, 1, sheet.getMaxColumns());
   var firstDataRowIndex = optFirstDataRowIndex || sheet.getLastRow()+1 ;
   var headers = headersRange.getValues()[0];
   var dataSet = [];
-  ss.toast("processing "+ objects.length +" of Data"); 
+  if(UIONOFF){ ss.toast("processing "+ objects.length +" of Data"); }
   for (var i = 0; i < objects.length; ++i) {
     var values = []
     for (j = 0; j < headers.length; ++j) {
@@ -293,97 +322,11 @@ function setRowsData(sheet, objects, optHeadersRange, optFirstDataRowIndex) {
     }
     dataSet.push(values);
   }
-  ss.toast("Writing "+objects.length+" rows of data");
+  if(UIONOFF){ ss.toast("Writing "+objects.length+" rows of data");}
   var destinationRange = sheet.getRange(firstDataRowIndex, headersRange.getColumnIndex(), objects.length, headers.length);
   destinationRange.setValues(dataSet);
   var sheetName = sheet.getSheetName();
-  formatColumns(sheetName)
+  formatColumns(sheet)
 };
 
-/**
- * Copyright Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
-/**
- * @OnlyCurrentDoc  Limits the script to only accessing the current spreadsheet.
- */
-
-
-
-/**
- * Opens a dialog. The dialog structure is described in the Dialog.html
- * project file.
- */
-function showDialog() {
-  var ui = HtmlService.createTemplateFromFile('Dialog')
-      .evaluate()
-      .setWidth(400)
-      .setHeight(190)
-      .setSandboxMode(HtmlService.SandboxMode.IFRAME);
-  SpreadsheetApp.getUi().showModalDialog(ui, DIALOG_TITLE);
-}
-
-/**
- * Returns the value in the active cell.
- *
- * @return {String} The value of the active cell.
- */
-function getActiveValue() {
-  // Retrieve and return the information requested by the sidebar.
-  var cell = SpreadsheetApp.getActiveSheet().getActiveCell();
-  return cell.getValue();
-}
-
-/**
- * Replaces the active cell value with the given value.
- *
- * @param {Number} value A reference number to replace with.
- */
-function setActiveID(info) {
-  var shopID = info;
-  console.log("Shop ID", shopID)
-  // Use data collected from sidebar to manipulate the sheet.
-  var cell = SpreadsheetApp.getActive().getRangeByName('shopNum').setValue(shopID);
-  var msg = "shop ID Set to " + cell.getValue();
-  return 
-}
-
-function setActiveSheet(sheet) {
-  console.log("value", sheet)
-  // Use data collected from sidebar to manipulate the sheet.
-  var setSheet = SpreadsheetApp.getActive().getSheetByName(sheet).showSheet().activate();
-  getMeTheData();
-    var msg = "API Called";
-  return 
-}
-
-/**
- * Executes the specified action (create a new sheet, copy the active sheet, or
- * clear the current sheet).
- *
- * @param {String} action An identifier for the action to take.
- */
-function modifySheets(action) {
-  // Use data collected from dialog to manipulate the spreadsheet.
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var currentSheet = ss.getActiveSheet();
-  if (action == 'create') {
-    ss.insertSheet();
-  } else if (action == 'copy') {
-    currentSheet.copyTo(ss);
-  } else if (action == 'clear') {
-    currentSheet.clear();
-  }
-}
