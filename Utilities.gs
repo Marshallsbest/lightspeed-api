@@ -56,9 +56,19 @@ function updateSaleID(name,saleOffset){
 *
 */ 
 function resetShopObject(){
+  var shopName = getUserInput()
+    PropertiesService.getScriptProperties().deleteProperty(shopName);
+  }
+  
+  /**
+*
+*  Input - Propmt a text filed for input from the user to get a string fieldvalue
+*
+*/ 
+ function getUserInput(){ 
    var ui = SpreadsheetApp.getUi();
     var eResponse = ui.prompt("Shop Object Reset","Please Enter the Shop Name you want to reset",  ui.ButtonSet.YES_NO)
-    if (eResponse.getSelectedButton() == ui.Button.YES) {
+      if (eResponse.getSelectedButton() == ui.Button.YES) {
       var shopName = eResponse.getResponseText()
     } else if (eResponse.getSelectedButton() == ui.Button.NO) {
       ui.alert("Email address not added make sure to add the document later");
@@ -66,5 +76,5 @@ function resetShopObject(){
     } else {
       return
     }
-    PropertiesService.getScriptProperties().deleteProperty(shopName);
-  }
+    return shopName
+    }

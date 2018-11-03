@@ -136,7 +136,9 @@ function getCurrentSaleID(sheetName,ssID){
   var colIndex = headers[0].indexOf("saleID")+1;
   var column = sheet.getRange(2, colIndex,sheet.getLastRow()).getValues().sort(function(a, b){return a-b}).pop();
   var saleID = Math.max.apply(null, column);
+  log("returned Sale ID from the Get Sale ID Function",saleID);
   return saleID
+  
 }
 
 function callApi(apiUrl,service, type){

@@ -45,7 +45,8 @@ function onOpen(e) {
   .addSubMenu(ui.createMenu('Admin')
               .addItem('Show sidebar', 'showSidebar')
               .addItem('Update All', 'upDateAll')
-              .addItem('Reset Service','reset')    
+              .addItem('Reset Service','reset')
+               .addItem('Update Shop info','shopUpdateObject')   
               .addItem('Reset Object','resetShopObject'))    
   .addToUi();
 }
@@ -67,63 +68,64 @@ function onInstall(e) {
  * Update the Current values to reflect any sales made since the last call
  */
 function upDateAll(){
-  UIONOFF = false; 
-  //  updateSaleItems1();
-//  log("Shop 1 Called",{})
-  //  updateSaleItems2();
-//  log("Shop 2 Called",{})
+UIONOFF = false; 
+  updateSaleItems1();
+  log("Shop 1 Called",{})
+  updateSaleItems2();
+  log("Shop 2 Called",{})
   updateSaleItems3();
   log("Shop 3 Called",{})
-  //  updateSaleItems4();
-//  log("Shop 4 Called",{})
-  //  updateSaleItems5();
-//  log("Shop 5 Called",{})
-  //  updateSaleItems6();
-  //  updateSaleItems7();
+  updateSaleItems4();
+  log("Shop 4 Called",{})
+  updateSaleItems5();
+  log("Shop 5 Called",{})
+  updateSaleItems6();
+  updateSaleItems7();
 }
 function updateFergus(){
-  updateSaleItems4()
+updateSaleItems4()
 }
 ////////////////////////////////////////////////////////////////////////////////////////
 // == -- The Main Function Called for retrieving the Data from teh API -- == \\ 
 ////////////////////////////////////////////////////////////////////////////////////////
 
 /**
-* Main Sales Data Function Call 
-* @param {Object} shopObj - Franchisee object to be passed in 
-* @Param {String} endPoint - name of the main End point to be called
-* @Param {Booleon} clear - Set to true clear the entire contents of the Data sheet and reload the data
-*/
+ * Main Sales Data Function Call 
+ * @param {Object} shopObj - Franchisee object to be passed in 
+ * @Param {String} endPoint - name of the main End point to be called
+ * @Param {Booleon} clear - Set to true clear the entire contents of the Data sheet and reload the data
+ */
 function getSalesData(shopObj, endPoint, clear){
   var objSheet = shopObj.salesSheetName;
   var ssID = shopObj.ID;
   var ss = SpreadsheetApp.openById(ssID);
   var sheet = ss.getSheetByName(objSheet);
   sheet.activate();
-  var saleOffset = objSheet.saleID || getCurrentSaleID(objSheet,ssID);
+  var saleOffset = getCurrentSaleID(objSheet,ssID);
+  log("Sales Object",saleOffset);
   var headerRows = 1 ;
   var offset = 0;
-  
-  // == -- adjust process for updating info or replacing info -- == \\   
-  if(!clear){ 
-    var url = shopObj.sales+"&saleID=%3D,"+saleOffset;
-    log("URL",url);
-    updateSaleID(shopObj.name,saleOffset)
-  } else {
-    clearSheet(headerRows, sheet);
-    saleOffset = 0;
-  }
-  
   // == -- Specify the type of call needed -- == \\ 
   var type = "GET";
   if(endPoint = "Sale"){
     // == -- Build the URL with any offsets -- == \\
     var url = shopObj.sales;
+    // == -- adjust process for updating info or replacing info -- == \\   
+    if(!clear){ 
+      log("sales object",shopObj);
+     url = url+"&saleID=%3E,"+saleOffset;
+      log("log Url",url);
+      updateSaleID(shopObj.name,saleOffset)
+    } else {
+      clearSheet(headerRows, sheet);
+      saleOffset = 0;
+    }
   } else if(endPoint = "Order"){
     // == -- Build the URL with any offsets -- == \\
     var url = shopObj.orders;
   }
-  //  log("url",url);
+  
+//  log("url",url);
   // == -- Initiate the OAuth / Api Call with the given variables -- == \\ 
   var data = getData(offset,url,endPoint,type);
   
@@ -164,7 +166,7 @@ function getEmployeeData(employee, endPoint, clear){
     
   // == -- Initiate the OAuth / Api Call with the given variables -- == \\ 
   var data = getData(offset,url,endPoint,type);
-  
+  log("data being Sent!",data)
   // == -- Make the call to insert the rows needed for the new data and insert the data -- == \\ 
   insertData(sheet,data);
 }
@@ -204,6 +206,8 @@ function getData(offset,url, endPoint, type){
       // == -- Build API Headers -- == \\
       var response = callApi(apiUrl, service, type)
       var responseHeaders = response.getAllHeaders();
+      log("response Headers",responseHeaders);
+      log("response",response);
       var obj = JSON.parse(response.getContentText());
       var dataCounts = Object.getOwnPropertyDescriptor(obj, "@attributes");
       var count = Number(dataCounts.value.count);
@@ -234,7 +238,7 @@ function getData(offset,url, endPoint, type){
             }
           }
         }
-      }else{log("Count is empty",count);return}
+      }else{log("Count is empty",count);}
       // == -- Check and make repeat calls with offset to get all the needed Data -- == \\
       var curCount = Number(dataAll.length) + Number(nonSale);
 //      console.log("Current Count"+curCount+" non Sale "+nonSale+" dataAll size "+dataAll.length )
