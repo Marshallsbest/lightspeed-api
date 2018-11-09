@@ -7,12 +7,34 @@
 * Params {String} value - the objects title or label 
 * Params {Object} obj - the object passed in for logging
 */
+function logData(value, obj){
+  if(LOGDATA){
+    console.log(value, obj);
+    Logger.log(value, obj);
+  }
+}
+function logSData(value, obj){
+  if(LOGSDATA){
+    console.log(value, obj);
+    Logger.log(value, obj);
+  }
+}
+function logOData(value, obj){
+  if(LOGODATA){
+    console.log(value, obj);
+    Logger.log(value, obj);
+  }
+}
 function log(value, obj){
   console.log(value, obj);
   Logger.log(value, obj);
 }
-
-
+function logSales(value, obj){
+  if(LOGSALES){
+    console.log(value, obj);
+    Logger.log(value, obj);
+  }
+}
 /**
 * Recal - A simple little tool function for getting objects from the ScriptProperties
 * Params {String} key - the Key of the property to be returned 
@@ -30,7 +52,7 @@ function recal(key){
 *  Params {Object} obj - the object to store should be stringified before calling this function
 */
 function store(key,obj){
- var json = JSON.stringify(obj)
+  var json = JSON.stringify(obj)
   PropertiesService.getScriptProperties().setProperty(key,json);
 }
 
@@ -49,7 +71,7 @@ function updateSaleID(name,saleOffset){
   obj.saleID = saleOffset;
   store(name,obj);
 }
-  
+
 /**
 *
 *  Reset - Gets the the Object key from a user promt and Deletes the Property
@@ -57,24 +79,36 @@ function updateSaleID(name,saleOffset){
 */ 
 function resetShopObject(){
   var shopName = getUserInput()
-    PropertiesService.getScriptProperties().deleteProperty(shopName);
-  }
-  
-  /**
+  PropertiesService.getScriptProperties().deleteProperty(shopName);
+}
+
+/**
 *
 *  Input - Propmt a text filed for input from the user to get a string fieldvalue
 *
 */ 
- function getUserInput(){ 
-   var ui = SpreadsheetApp.getUi();
-    var eResponse = ui.prompt("Shop Object Reset","Please Enter the Shop Name you want to reset",  ui.ButtonSet.YES_NO)
-      if (eResponse.getSelectedButton() == ui.Button.YES) {
-      var shopName = eResponse.getResponseText()
+function getUserInput(){ 
+  var ui = SpreadsheetApp.getUi();
+  var eResponse = ui.prompt("Shop Object Reset","Please Enter the Shop Name you want to reset",  ui.ButtonSet.YES_NO)
+  if (eResponse.getSelectedButton() == ui.Button.YES) {
+    var shopName = eResponse.getResponseText()
     } else if (eResponse.getSelectedButton() == ui.Button.NO) {
       ui.alert("Email address not added make sure to add the document later");
       return
     } else {
       return
     }
-    return shopName
-    }
+  return shopName
+}
+
+/**
+*
+* == -- template calls for spead Sheet templates -- == 
+*
+*/
+function templateSale(){
+  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Sale');
+}
+function templateEmployee(){
+  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Employee');
+}

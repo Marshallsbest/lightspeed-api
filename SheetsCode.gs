@@ -1,78 +1,3 @@
-// == -- Date : get the Week number according to ISO See notes for Attribution -- == \\
-// This portion of the script (Date.getWeek) is released to the public domain and may be used, modified and
-// distributed without restrictions. Attribution not necessary but appreciated.
-// Source: https://weeknumber.net/how-to/javascript
-
-Date.prototype.getWeekYear = function() {
-  var date = new Date(this.getTime());
-  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
-  return date.getFullYear();
-}
-Date.prototype.getWeek = function() {
-  var date = new Date(this.getTime());
-  date.setHours(0, 0, 0, 0);
-  // Thursday in current week decides the year.
-  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
-  // January 4 is always in week 1.
-  var week1 = new Date(date.getFullYear(), 0, 4);
-  // Adjust to Thursday in week 1 and count number of weeks from date to week1.
-  return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
-}
-
-
-//////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-// == -- Micro Funcitons designed to be used by multiple processes -- == \\
-//////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-
-// == -- Change the strings returned in to date objects for the Spreadsheet to recognize properly -- == \\
-function fixDates(dataRow){
-  if(dataRow.orderedDate){
-    var orDate = new Date(dataRow.orderedDate).toJSON();
-    dataRow.orderedDate = new Date(orDate);
-  };
-  if(dataRow.receivedDate){
-    var reDate = new Date(dataRow.receivedDate).toJSON();
-    dataRow.receivedDate = new Date(reDate);
-  };
-  if(dataRow.timeStamp){
-    var tsDate = new Date(dataRow.timeStamp).toJSON();
-    dataRow.timeStamp = new Date(tsDate);
-  };
-  if(dataRow.createTime){
-    var crDate = new Date(dataRow.createTime).toJSON();
-    dataRow.createTime = new Date(crDate);
-  };
-  if(dataRow.updateTime){
-    var upDate = new Date(dataRow.updateTime).toJSON();
-    dataRow.updateTime = new Date(upDate);
-  };
-  if(dataRow.dob){
-    var dbDate = new Date(dataRow.dob).toJSON();
-    dataRow.dob = new Date(dbDate);
-  };
-  if(dataRow.arrivalDate){
-    var arDate = new Date(dataRow.arrivalDate).toJSON();
-    dataRow.arrivalDate = new Date(arDate);
-  };
-  if(dataRow.completeTime){
-    var cpDate = new Date(dataRow.completeTime).toJSON();
-    dataRow.completeTime = new Date(cpDate);
-    
-    dataRow.createWeek = dataRow.createTime;  
-  };
-  if(dataRow.createWeek){
-    var cwDate = new Date(dataRow.completeTime).toJSON();
-    var week = new Date(cwDate);
-    var weekNum = week.getWeek();
-    dataRow.createWeek = weekNum;
-  };
-  dataRow.createDay = dataRow.createTime;
-  dataRow.createMonth = dataRow.createTime;
-  dataRow.time = dataRow.createTime;
-  return dataRow
-};
-
-
 /////////////////////////////////////////////////////////////////////////
 // Clear Date Sheet
 ////////////////////////////////////////////////////////////////////////
@@ -84,101 +9,80 @@ function clearSheet(headerRows, sheet){
   }
 };
 
-function resetSaleItems4(){
-  var fergus = new franchisee("Fergus",4);
-  getSalesData(fergus,"Sale", true)
-}
+/////////////////////////////////////////////////////////////////////////////////
+// map to a spread sheet
+/////////////////////////////////////////////////////////////////////////////////
+/**
+* Check and make sure the designated sheet has enough rows to recieve the data to be written 
+* @param {Object} sheet - A Spreadsheet Object that will recieve the Data 
+* @Param {Object} data - the processed Data to be written to the sheet
+*/
+function  insertData(sheet,data){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var dLength = data.length || 0;
+  logSData("data at Insert Sheet", data)
+  var dataRows = sheet.getLastRow();
+  var sheetRows = sheet.getMaxRows();
+  var insertRow = sheet.getLastRow();
+  var openRows = Number(sheetRows) - Number(dataRows)
+  if(UIONOFF){ ss.toast("the sheet needs:"+openRows+" as there are "+sheetRows+" in total with "+dataRows+" which are already filled")}
+  if (dLength>0){
+    if(openRows < dLength){ 
+      if(UIONOFF){ ss.toast("Inserting "+numRows+" rows");}
+      var numRows = Number(dLength-openRows);
+      if(insertRow <2){insertRow=2};
+      sheet.insertRowsAfter(insertRow, numRows);
+    }else{
+    if(UIONOFF){ ss.toast("row insertion not needed");}
+      }
+    setRowsData(sheet, data);
+  } else {
+    if(UIONOFF){ ss.toast("Data Not Defined! Nothing to be Written to Sheet");}
+  };
+};
+
+
+
+//////////////////////////////////////////////////////////////////////////////////
+// setRowsData fills in one row of data per object defined in the objects Array.
+// For every Column, it checks if data objects define a value for it.
+// Arguments:
+//   - sheet: the Sheet Object where the data will be written
+//   - objects: an Array of Objects, each of which contains data for a row
+//   - optHeadersRange: a Range of cells where the column headers are defined. This
+//     defaults to the entire first row in sheet.
+//   - optFirstDataRowIndex: index of the first row where data should be written. This
+//     defaults to the row immediately below the headers.
 ////////////////////////////////////////////////////////////////////////////////////
-// This Assigns the item description, category and qty to the corresponding columns 
-////////////////////////////////////////////////////////////////////////////////////
-function fixItems(dataRow){
-  try{ 
-    var saleItemQty=0;
-    var sLine = dataRow.SaleLines.SaleLine;
-    if(Array.isArray(sLine)){
-      for(var j = 0; j<sLine.length; j++){
-        var desc = 'LineItemDesc'+j;
-        var qty = 'LineItemQty'+j;
-        var cat = 'LineItemCat'+j;
-        dataRow[desc] = sLine[j].Item.description;
-        dataRow[qty] = sLine[j].unitQuantity;
-        dataRow[cat] = sLine[j].Item.categoryID;
-        saleItemQty = Number(saleItemQty)+Number(sLine[j].unitQuantity);
-      };
-    }else {
-      dataRow.LineItemDesc0 = sLine.Item.description;
-      dataRow.LineItemQty0 = sLine.unitQuantity;
-      dataRow.LineItemCat0 = sLine.Item.categoryID;
-      saleItemQty = Number(saleItemQty) + Number(sLine.unitQuantity);
+/**
+ * Write the Data to the Spreadsheet 
+ * @param {Object} sheet - The Spreadsheet to which the data will be written
+ * @Param {Object} objects - The data  to be written to the Sheet
+ * @Param {Object} optHeadersRange - An optional Range object that can be used to define the header area
+ * @Param {Integer} optFirstDataRowIndex - Optional number to used as Row Index to begin the new information at 
+ */
+function setRowsData(sheet, objects, optHeadersRange, optFirstDataRowIndex) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var headersRange = optHeadersRange || sheet.getRange(1, 1, 1, sheet.getMaxColumns());
+  var firstDataRowIndex = optFirstDataRowIndex || sheet.getLastRow()+1 ;
+  var headers = headersRange.getValues()[0];
+  var dataSet = [];
+  if(UIONOFF){ ss.toast("processing "+ objects.length +" of Data"); }
+  for (var i = 0; i < objects.length; ++i) {
+    var values = []
+    for (j = 0; j < headers.length; ++j) {
+      var header = headers[j];
+      values.push(header.length > 0 && objects[i][header] ? objects[i][header] : "");
     }
-    dataRow.SaleItemQty = saleItemQty;
-    dataRow.HST = Number(dataRow.tax1Rate)+Number(dataRow.tax2Rate);
-    dataRow.calcTax = Number(dataRow.calcTax1)+Number(dataRow.calcTax2);
+    dataSet.push(values);
   }
-  catch(error){
-    console.log(error)
-    ////console.log(this)
-  }
-  return dataRow;
-  
-}
+  var destinationRange = sheet.getRange(firstDataRowIndex, headersRange.getColumnIndex(), objects.length, headers.length);
+  if(UIONOFF){ ss.toast("Writing "+objects.length+" rows of data");}
+  destinationRange.setValues(dataSet);
+  formatColumns(sheet) 
+};
 
 
-
-///////////////////////////////////////////////////////////////////////////////////////
-// Gets All sale ID tags and finds the largest in hte column
-///////////////////////////////////////////////////////////////////////////////////////
-function getCurrentSaleID(sheetName,ssID){
-  
-  var ss = SpreadsheetApp.openById(ssID);
-  var sheet = ss.getSheetByName(sheetName);
-  var headers = sheet.getRange(1,1,1,ss.getLastColumn()).getValues();
-  var colIndex = headers[0].indexOf("saleID")+1;
-  var column = sheet.getRange(2, colIndex,sheet.getLastRow()).getValues().sort(function(a, b){return a-b}).pop();
-  var saleID = Math.max.apply(null, column);
-  log("returned Sale ID from the Get Sale ID Function",saleID);
-  return saleID
-  
-}
-
-function callApi(apiUrl,service, type){
-  var headers = {
-    "Authorization": 'Bearer ' + service.getAccessToken(),  
-    "Accept": 'application/json'
-  };
-  var options = {
-    "headers": headers,
-    "method" : type,
-    "muteHttpExceptions": true
-  };
-  
-  // == -- Make The Call to Light Speed -- == \\
-  var response = UrlFetchApp.fetch(apiUrl,options);
-  return response
-}
-///////////////////////////////////////////////////////////////////////////////////////
-// Set Column Formating 
-///////////////////////////////////////////////////////////////////////////////////////
-function formatColumns(sheet){
-  var s = sheet;
-  var headers = s.getRange(1,1,1,s.getLastColumn()).getValues();
-  var colIndex = headers[0].indexOf("createDay")+1;
-  var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("DDDD");
-  var colIndex = headers[0].indexOf("createMonth")+1;
-  var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("MMMM");
-  var colIndex = headers[0].indexOf("createTime")+1;
-  var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("yyyy-MM-dd");
-  var colIndex = headers[0].indexOf("createWeek")+1;
-  var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("###");
-  var colIndex = headers[0].indexOf("time")+1;
-  var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("HH:mm:ss");
-  var colIndex = headers[0].indexOf("HST")+1;
-  var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("##%");
-  var colIndex = headers[0].indexOf("calcDiscount")+1;
-  var column = s.getRange(2, colIndex,s.getLastRow(),10).setNumberFormat("$#,##0.00");
-  
-  
-}
 
 /**
 * Opens a sidebar. The sidebar structure is described in the Sidebar.html
@@ -192,21 +96,7 @@ function showSidebar(){
   .setSandboxMode(HtmlService.SandboxMode.IFRAME);
   //  SpreadsheetApp.getUi().showSidebar(ui);
 }
-
-/**
-* Opens a dialog. The dialog structure is described in the Dialog.html
-* project file.
-*/
-function showDialog() {
-  var DIALOG_TITLE = 'Authenticate Lightspeed';
-  var ui = HtmlService.createTemplateFromFile('Dialog')
-  .evaluate()
-  .setWidth(400)
-  .setHeight(190)
-  .setSandboxMode(HtmlService.SandboxMode.IFRAME);
-  //  SpreadsheetApp.getUi().showModalDialog(ui, DIALOG_TITLE);
-}
-
+  
 /**
 * Returns the value in the active cell.
 *
@@ -226,7 +116,7 @@ function getActiveValue() {
 function setActiveID(info) {
   var shopID = info;
   var prompt = "Getting Saved Shop Object Info: "+shopID;
-  ////console.log("Shop ID", shopID)
+  ////logSData("Shop ID", shopID)
   // Use data collected from sidebar to manipulate the sheet.
   var cell = SpreadsheetApp.getUi().alert(prompt);
   var create
@@ -235,7 +125,7 @@ function setActiveID(info) {
 }
 
 function setActiveSheet(sheet) {
-  //console.log("value", sheet)
+  //logSData("value", sheet)
   // Use data collected from sidebar to manipulate the sheet.
   var setSheet = SpreadsheetApp.getActive().getSheetByName(sheet).showSheet().activate();
   getMeTheData();
@@ -260,4 +150,42 @@ function modifySheets(action) {
   } else if (action == 'clear') {
     currentSheet.clear();
   }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////
+// Set Column Formating 
+///////////////////////////////////////////////////////////////////////////////////////
+function formatColumns(sheet){
+  var s = sheet;
+  var headers = s.getRange(1,1,1,s.getLastColumn()).getValues();
+  if(headers[0]["createDay"]){
+    var colIndex = headers[0].indexOf("createDay")+1;
+    var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("DDDD");}
+  if(headers[0]["createMonth"]){
+    var colIndex = headers[0].indexOf("createMonth")+1;
+    var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("MMMM");}
+  if(headers[0]["createTime"]){
+    var colIndex = headers[0].indexOf("createTime")+1;
+    var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("yyyy-MM-dd");}
+  if(headers[0]["createWeek"]){
+    var colIndex = headers[0].indexOf("createWeek")+1;
+    var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("###");}
+  if(headers[0]["time"]){
+    var colIndex = headers[0].indexOf("time")+1;
+    var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("HH:mm:ss");}
+  if(headers[0]["HST"]){
+    var colIndex = headers[0].indexOf("HST")+1;
+    var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("##%");}
+  if(headers[0]["calcDiscount"]){
+    var colIndex = headers[0].indexOf("calcDiscount")+1 ;
+    var column = s.getRange(2, colIndex,s.getLastRow(),10).setNumberFormat("$#,##0.00");}
+  if(headers[0]["displayableSubtotal"]){ 
+    var colIndex  = headers[0].indexOf("displayableSubtotal")+1;
+    var column = s.getRange(2, colIndex,s.getLastRow(),10).setNumberFormat("$#,##0.00");}
+  if(headers[0]["unitPrice"]){ 
+    var colIndex = headers[0].indexOf("unitPrice")+1;
+    var column = s.getRange(2, colIndex,s.getLastRow(),3).setNumberFormat("$#,##0.00");}
+  if(headers[0]["total"]){ 
+    var colIndex = headers[0].indexOf("total")+1;
+    var column = s.getRange(2, colIndex,s.getLastRow(),3).setNumberFormat("$#,##0.00");}
 }
