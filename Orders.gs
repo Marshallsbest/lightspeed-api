@@ -1,10 +1,10 @@
-  ////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
 // == -- UpDate Function for auto reporting set to fire every 5 minutes and retrieve any new sales data based on last salesID -- == \\ 
 ////////////////////////////////////////////////////////////////////////////////////////
 /**
  * Update the Current values to reflect any sales made since the last call
  */
-function upDateOrdersOrders(){
+function upDateOrders(){
 UIONOFF = false; 
 //  updateOrderItems1();
 //  logOData("Shop 1 Called",{})
@@ -31,26 +31,26 @@ UIONOFF = false;
  * @Param {Booleon} clear - Set to true clear the entire contents of the Data sheet and reload the data
  */
 function getOrderData(shopObj, endPoint, clear){
-  var objSheet = shopObj.salesSheetName;
+  var objSheet = shopObj.orderSheetName;
   var ssID = shopObj.ID;
   var ss = SpreadsheetApp.openById(ssID);
   var sheet = ss.getSheetByName(objSheet);
   sheet.activate();
+  var orderOffset = getCurrentOrderID(sheet,ssID);
   logOData("Order Object",orderOffset);
   var headerRows = 1 ;
   var offset = 0;
-  var worker = new DataObject("employeeID","firstName");
-  // == -- Specify the type of call needed -- == \\ 
+   // == -- Specify the type of call needed -- == \\ 
   var type = "GET";
   if(endPoint = "Order"){
     // == -- Build the URL with any offsets -- == \\
-    var url = shopObj.sales;
+    var url = shopObj.order;
     // == -- adjust process for updating info or replacing info -- == \\   
     if(!clear){ 
       //      logOData("sales object",shopObj);
-      url = url+"&saleID=%3E,"+orderOffset;
+      url = url+"&orderID=%3E,"+orderOffset;
       //      logOData("log Url",url);
-      updateSaleID(shopObj.name,orderOffset)
+      updateOrderID(shopObj.name,orderOffset)
     } else {
       clearSheet(headerRows, sheet);
       orderOffset = 0;
@@ -60,8 +60,8 @@ function getOrderData(shopObj, endPoint, clear){
   // == -- Initiate the OAuth / Api Call with the given variables -- == \\ 
   var data = getData(offset,url,endPoint,type);
   for( var row in data){
+    getOrderDetails(shopObj,row)
     fixDates(row);
-    getNames(row,worker);
     fixItems(row);
   }
   // == -- Make the call to insert the rows needed for the new data and insert the data -- == \\ 
@@ -72,25 +72,23 @@ function getOrderData(shopObj, endPoint, clear){
 * Populates the Sale line data
 *
 */
-function getOrderLineData(shopObj, endPoint, clear){
+function getOrderDetails(shopObj, Order){
   var objSheet = shopObj.orderLineSheetName;
-  var ssID = shopObj.ID;
+    var ssID = shopObj.ID;
   logOData("Shop Object",shopObj.orderLineSheetName)
   var ss = SpreadsheetApp.openById(ssID);
-  var sheet = ss.getSheetByName(objSheet).activate();
-  //  sheet.activate();
-  var orderOffset = getCurrentOrderID(objSheet,ssID);
+    var sheet = ss.getSheetByName(objSheet)
+    sheet.activate();
+  var orderOffset = getCurrentOrderID(sheet,ssID);
   logOData("order Offset",orderOffset);
-  var headerRows = 1 ;
+  var headerRows = 1;
   var offset = 0;
-  var worker = new DataObject("employeeID","firstName");
+   var url = shopObj.orderLine;
   // == -- Specify the type of call needed -- == \\ 
   var type = "GET";
   if(endPoint = "OrderLine"){
-    // == -- Build the URL with any offsets -- == \\
-    var url = shopObj.orderLine;
     // == -- adjust process for updating info or replacing info -- == \\   
-    if(!clear && !orderOffset){ 
+    if(!clear && orderOffset){ 
       //      logOData("sales object",shopObj);
       url = url+"&orderID=%3E,"+orderOffset;
       logOData("log Url",url);
@@ -102,7 +100,7 @@ function getOrderLineData(shopObj, endPoint, clear){
   }
   logOData("url",url);
   // == -- Initiate the OAuth / Api Call with the given variables -- == \\ 
-  var data = getOrderData(offset,url,endPoint,type);
+  var data = getData(offset,url,endPoint,type);
   for( var row in data){
     fixDates(row);
     getNames(row,worker);
@@ -110,88 +108,6 @@ function getOrderLineData(shopObj, endPoint, clear){
   }
   // == -- Make the call to insert the rows needed for the new data and insert the data -- == \\ 
   insertOrderData(sheet,data);
-}
-/////////////////////////////////////////////////////////////////////////////////////
-// Calling the API to get the Data
-/////////////////////////////////////////////////////////////////////////////////////
-/**
-* Used to populate the Employee information Object used as a reference during data 
-* processing of the numerous rows 
-* @param {Object} employee - Employee object to be passed in 
-* @Param {String} endPoint - name of the main End point to be called
-* @Param {Booleon} clear - Set to true clear the entire contents of the Data sheet and reload the data
-*/
-
-////////////////////////////////////////////////////////////////////////////////////////
-// == -- This is used to build the end point used to make calls to Light Speed -- == \\
-////////////////////////////////////////////////////////////////////////////////////////
-/**
-* Build the url from the Named Range on the API sheet 
-* coresponding to the Active sheet name
-* @params {integer} offset  the number at which the returned 100 lines begins 
-* @params {string} url call to the api
-* @params {string} endPoint the name of the end point 
-* @params {string} the type of call to make [GET, POST, PUT, DELETE]
-* @return {Object} data[] 
-*/
-function getOrdersData(offset,url, endPoint, type){
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var service = getDragonLight();
-  var data = [];
-  var choice = endPoint;
-  var apiUrl;
-  var loopCount = 0;
-  // == -- Get OAuth Token before making the API Call -- == \\ 
-  if (service.hasAccess()){
-    var loop = true;
-    var dataAll = [];   
-    // == -- API limits returned Data to 100 lines, Loop calls till all lines are retrieved -- == \\  
-    while (loop){
-      if(offset <= 0){
-        apiUrl = url;
-      } else {
-        apiUrl = url+"&offset="+offset;
-      };
-      // == -- Build API Headers -- == \\
-      var response = callApi(apiUrl, service, type)
-      var responseHeaders = response.getAllHeaders();
-//      logOData("response Headers",responseHeaders);
-//      logOData("response",response);
-      var obj = JSON.parse(response.getContentText());
-      var dataCounts = Object.getOwnPropertyDescriptor(obj, "@attributes");
-//      logOData("datacounts", dataCounts);
-//      logOData("datacounts", obj);
-      var count = Number(dataCounts.value.count);
-      var limit = Number(dataCounts.value.limit||100);
-//      logOData("Count -= : ", count)
-      var objData =  Object.getOwnPropertyDescriptor(obj,choice);
-//       logOData("objData: ",objData)
-  logOData("choice ",choice);
-  if(count>0){
-        for (var i = 0 ; i < objData.value.length; i++ ){
-      logOData("objData.value.length: ",objData.value.length)
-          var dataRow = objData.value[i]; 
-              dataAll.push(dataRow); // <- recursive call
-          }
-      }else{logOData("Count is empty",count);}
-      // == -- Check and make repeat calls with offset to get all the needed Data -- == \\
-      var curCount = Number(dataAll.length);
-      //      logOData("Current Count"+curCount+" non Sale "+nonSale+" dataAll size "+dataAll.length )
-      if(count > curCount && loopCount != curCount){
-        offset = curCount; 
-        if(UIONOFF){ ss.toast("Number of Completed Order Records Found and Processed ="+dataAll.length+" out of "+curCount+" of "+count);}
-        loopCount = curCount
-      } else {
-        loop = false
-      };
-    };
-  } else {
-    // == -- Throw up an alert box to get the user the authorization dialog url -- == \\
-    reAuth(service)
-  }
-  //  var prompt = "There were "+nonSale+" sale Enteries which where not marked as Complete and thereby not Counted in this Spreadsheet";
-  //  SpreadsheetApp.getUi().alert(prompt);
-  return dataAll;
 }
 
 
@@ -267,3 +183,16 @@ function setOrderRowsData(sheet, objects, optHeadersRange, optFirstDataRowIndex)
 };
 
 
+///////////////////////////////////////////////////////////////////////////////////////
+// Gets All sale ID tags and finds the largest in hte column
+///////////////////////////////////////////////////////////////////////////////////////
+function getCurrentOrderID(sheet,ssID){
+//  var ss = SpreadsheetApp.openById(ssID);
+//  var sheet = ss.getSheetByName(sheetName);
+  var headers = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues();
+  var colIndex = headers[0].indexOf("orderID")+1;
+  var column = sheet.getRange(2, colIndex, sheet.getLastRow()).getValues().sort(function(a, b){return a-b}).pop();
+  var orderID = Math.max.apply(null, column);
+    log("returned Order ID from the Get Order ID Function",orderID);
+  return orderID
+}

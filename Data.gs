@@ -1,3 +1,8 @@
+function testing(){
+
+resetSaleItems4()
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // == -- This is used to build the end point used to make calls to Light Speed -- == \\
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -17,60 +22,60 @@ function getData(offset,url, endPoint, type){
   var choice = endPoint;
   var apiUrl;
   var loopCount = 0;
-  // == -- Get OAuth Token before making the API Call -- == \\ 
+// == -- Get OAuth Token before making the API Call -- == \\ 
   if (service.hasAccess()){
     var loop = true;
     var dataAll = [];   
-    // == -- API limits returned Data to 100 lines, Loop calls till all lines are retrieved -- == \\  
+// == -- API limits returned Data to 100 lines, Loop calls till all lines are retrieved -- == \\  
     while (loop){
       if(offset <= 0){
         apiUrl = url;
       } else {
         apiUrl = url+"&offset="+offset;
       };
-      // == -- Build API Headers -- == \\
+// == -- Build API Headers -- == \\
+      
       var response = callApi(apiUrl, service, type)
       var responseHeaders = response.getAllHeaders();
-//      logData("response Headers",responseHeaders);
-//      logData("response",response);
-      var obj = JSON.parse(response.getContentText());
-      var dataCounts = Object.getOwnPropertyDescriptor(obj, "@attributes");
-//      logData("datacounts", dataCounts);
-//      logData("datacounts", obj);
-      var count = Number(dataCounts.value.count);
-      var limit = Number(dataCounts.value.limit||100);
-//      logData("Count -= : ", count)
-      var objData =  Object.getOwnPropertyDescriptor(obj,choice);
-//       logData("objData: ",objData)
-//  logData("choice ",choice);
-  if(count>0){
-        for (var i = 0 ; i < objData.value.length; i++ ){
-  //     q logData("objData.value.length: ",objData.value.length)
-          var dataRow = objData.value[i]; 
-          dataAll.push(dataRow); // <- recursive call
-        }
-      } else{logData("Count is empty",count);}
-      // == -- Check and make repeat calls with offset to get all the needed Data -- == \\
-      var curCount = Number(dataAll.length);
-      //      logData("Current Count"+curCount+" non Sale "+nonSale+" dataAll size "+dataAll.length )
-      if(count > curCount && loopCount != curCount){
-        offset = curCount; 
-        if(UIONOFF){ ss.toast("Number of Completed Sales Records Found and Processed ="+dataAll.length+" out of "+curCount+" of "+count);}
-        loopCount = curCount
-      } else {
-        loop = false
+      var code = responseHeaders.code;
+       logData("response Headers",responseHeaders);
+       logData("response",response);
+        var obj = JSON.parse(response.getContentText());
+        var dataCounts = Object.getOwnPropertyDescriptor(obj, "@attributes");
+       logData("datacounts", dataCounts);
+       logData("datacounts", obj);
+        var count = Number(dataCounts.value.count || 0);
+        var limit = Number(dataCounts.value.limit || 100);
+//       logData("Count -= : ", count)
+        var objData =  Object.getOwnPropertyDescriptor(obj,choice)||0;
+       log("objData: ",objData)
+//       logData("choice ",choice);
+        if(count>0){
+          for (var i = 0 ; i < objData.value.length; i++ ){
+            //      logData("objData.value.length: ",objData.value.length)
+            var dataRow = objData.value[i]; 
+            fixItems(dataRow);
+            log("DATAROW",dataRow);
+            dataAll.push(dataRow); // <- recursive call
+          }
+        } else{logData("Count is empty",count);}
+        // == -- Check and make repeat calls with offset to get all the needed Data -- == \\
+        var curCount = Number(dataAll.length);
+        //      logData("Current Count"+curCount+" non Sale "+nonSale+" dataAll size "+dataAll.length )
+        if(count > curCount && loopCount != curCount){
+          offset = curCount; 
+          if(UIONOFF){ ss.toast("Number of Completed Sales Records Found and Processed ="+dataAll.length+" out of "+curCount+" of "+count);}
+          loopCount = curCount
+        } else {
+          loop = false
+        };
       };
-    };
   } else {
     // == -- Throw up an alert box to get the user the authorization dialog url -- == \\
     reAuth(service)
   }
-  //  var prompt = "There were "+nonSale+" sale Enteries which where not marked as Complete and thereby not Counted in this Spreadsheet";
-  //  SpreadsheetApp.getUi().alert(prompt);
   return dataAll;
 }
-
-
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // == -- Date : get the Week number according to ISO See notes for Attribution -- == \\
@@ -94,14 +99,13 @@ Date.prototype.getWeek = function() {
   return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
 }
 
-
 //////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 // == -- Micro Funcitons designed to be used by multiple processes -- == \\
 //////////////////////////////////|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 // == -- Change the strings returned in to date objects for the Spreadsheet to recognize properly -- == \\
 function fixDates(dataRow){
-  logData("fixdates Called",dataRow);
+//  logData("FIX DATES CALLED HERE ",dataRow);
   if(dataRow.orderedDate){
     var orDate = new Date(dataRow.orderedDate).toJSON();
     dataRow.orderedDate = new Date(orDate);
@@ -133,11 +137,11 @@ function fixDates(dataRow){
   if(dataRow.completeTime){
     var cpDate = new Date(dataRow.completeTime).toJSON();
     dataRow.completeTime = new Date(cpDate);
-    
-    dataRow.createWeek = dataRow.createTime;  
   };
+  dataRow.createWeek = dataRow.createTime;  
+  
   if(dataRow.createWeek){
-    var cwDate = new Date(dataRow.completeTime).toJSON();
+    var cwDate = new Date(dataRow.createWeek).toJSON();
     var week = new Date(cwDate);
     var weekNum = week.getWeek();
     dataRow.createWeek = weekNum;
@@ -145,7 +149,9 @@ function fixDates(dataRow){
   dataRow.createDay = dataRow.createTime;
   dataRow.createMonth = dataRow.createTime;
   dataRow.time = dataRow.createTime;
+  //log("Fix Dates Function",dataRow);
   return dataRow
+  
 };
 
 
@@ -153,11 +159,18 @@ function fixDates(dataRow){
 // This Assigns the item description, category and qty to the corresponding columns 
 ////////////////////////////////////////////////////////////////////////////////////
 function fixItems(dataRow){
-    dataRow.HST = Number(dataRow.tax1Rate)+Number(dataRow.tax2Rate);
-    dataRow.calcTax = Number(dataRow.calcTax1)+Number(dataRow.calcTax2);
-    dataRow.firstName = DataObject("employeeID","firstName");
-   return dataRow;
-  
+  dataRow.HST = Number(dataRow.tax1Rate)+Number(dataRow.tax2Rate);
+  dataRow.calcTax = Number(dataRow.calcTax1)+Number(dataRow.calcTax2);
+  if(dataRow.Item){
+    var items = dataRow.Item;
+    dataRow.itemName = items.description;
+    dataRow.categoryID = items.categoryID;  
+    dataRow.systemSku = items.systemSku;
+    dataRow.upc = items.upc;
+  }
+  //    log("Fix ITEMS FIUNCTION CALL",dataRow);
+ 
+  return dataRow;
 }
 
 
@@ -165,24 +178,26 @@ function fixItems(dataRow){
 // Employee Id Object used for referencing employee first names
 ////////////////////////////////////////////////////////////////////////////////////
 function testWorker(){
- var worker = new DataObject("employeeID","firstName");
+ var worker = new DataObject("employeeID","firstName","Employee");
  }
 
 
-function DataObject(keyRange,valueRange){
-  var s = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Employee");
+function DataObject(keyRange,valueRange,sheetName){
+  var s = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
   var headers = s.getRange(1,1,1,s.getLastColumn()).getValues();
   var colIndex = headers[0].indexOf(keyRange);
   var fnIndex = headers[0].indexOf(valueRange);
-  var info = {};
+  var info = [];
   var data= s.getDataRange().getValues();
   for(var i = 1; i<data.length;i++){
-    var row = data[i];
-    var key = row[colIndex];
+    var key = data[i][colIndex];
     var value = data[i][fnIndex];
-    this[key]= value
+    info.push(this[key])
+    info[key] = value;
     }
-return this
+    store("FirstName",info);
+//    console.log("Employee INfo Object",info)
+return info
 }
 
 
@@ -201,7 +216,7 @@ function callApi(apiUrl,service, type){
   };
   
   // == -- Make The Call to Light Speed -- == \\
-  var response = UrlFetchApp.fetch(apiUrl,options);
+      var response = UrlFetchApp.fetch(apiUrl,options);
   return response
 }
 

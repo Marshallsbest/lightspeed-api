@@ -5,19 +5,19 @@
  * Update the Current values to reflect any sales made since the last call
  */
 function upDateAll(){
-UIONOFF = false; 
-//  updateSaleItems1();
+//UIONOFF = false; 
+  updateSaleItems1();
 //  logSales("Shop 1 Called",{})
-//  updateSaleItems2();
+  updateSaleItems2();
 //  logSales("Shop 2 Called",{})
   updateSaleItems3();
-  logSales("Shop 3 Called",{})
+//  logSales("Shop 3 Called",{})
   updateSaleItems4();
-  logSales("Shop 4 Called",{})
-//  updateSaleItems5();
+//  logSales("Shop 4 Called",{})
+  updateSaleItems5();
 //  logSales("Shop 5 Called",{})
-//  updateSaleItems6();
-//  updateSaleItems7();
+  updateSaleItems6();
+  updateSaleItems7();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -36,16 +36,17 @@ function getSalesData(shopObj, endPoint, clear){
   var ss = SpreadsheetApp.openById(ssID);
   var sheet = ss.getSheetByName(objSheet);
   sheet.activate();
-  var saleOffset = getCurrentSaleID(objSheet,ssID);
+  var saleOffset = getCurrentSaleID(sheet,ssID);
+    if(UIONOFF){ ss.toast("Sale Off set ID  ="+saleOffset);}
+
   logSales("Sales Object",saleOffset);
   var headerRows = 1 ;
   var offset = 0;
-  var worker = new DataObject("employeeID","firstName");
   // == -- Specify the type of call needed -- == \\ 
   var type = "GET";
   if(endPoint = "Sale"){
     // == -- Build the URL with any offsets -- == \\
-    var url = shopObj.sales;
+    var url = shopObj.sale;
     // == -- adjust process for updating info or replacing info -- == \\   
     if(!clear){ 
       //      logSales("sales object",shopObj);
@@ -60,11 +61,14 @@ function getSalesData(shopObj, endPoint, clear){
   //  logSales("url",url);
   // == -- Initiate the OAuth / Api Call with the given variables -- == \\ 
   var data = getData(offset,url,endPoint,type);
-  for(var row in data){
-       getNames(row,worker);
-       fixItems(row);
+  if(data.length>=0 ){
+  for(var i = 0; i<data.length; i++){
+      var row = data[i];
+  logSales("Data Row",row);
+    getNames(row);
+//       fixItems(row);
        fixDates(row);
-  }
+  }}
   // == -- Make the call to insert the rows needed for the new data and insert the data -- == \\ 
   insertData(sheet,data);
 }
@@ -78,39 +82,38 @@ function getSaleLinesData(shopObj, endPoint, clear){
   var ssID = shopObj.ID;
 logSales("Shop Object",shopObj.saleLineSheetName)
 var ss = SpreadsheetApp.openById(ssID);
-  var sheet = ss.getSheetByName(objSheet).activate();
-//  sheet.activate();
-  var saleOffset = getCurrentSaleID(objSheet,ssID);
-logSales("saleLine Offset",saleOffset);
+  var sheet = ss.getSheetByName(objSheet);
+  sheet.activate();
+  var saleOffset = getCurrentSaleLineID(sheet,ssID); 
+  if(UIONOFF){ ss.toast("Sale Line Off set ID  ="+saleOffset);}
   var headerRows = 1;
   var offset = 0;
-   var worker = new DataObject("employeeID","firstName");
- 
-  // == -- Specify the type of call needed -- == \\ 
+    // == -- Specify the type of call needed -- == \\ 
   var type = "GET";
-  if(endPoint = "SaleLine"){
     // == -- Build the URL with any offsets -- == \\
     var url = shopObj.saleLine;
     // == -- adjust process for updating info or replacing info -- == \\   
-    if(!clear && !saleOffset){ 
+    if(!clear && saleOffset){ 
       //      logSales("sales object",shopObj);
-      url = url+"&saleID=%3E,"+saleOffset;
-      logSales("log Url",url);
+      url = url+"&saleLineID=%3E,"+saleOffset;
+//      logSales("log Url",url);
       updateSaleID(shopObj.name,saleOffset)
     } else {
       clearSheet(headerRows, sheet);
       saleOffset = 0;
     }
-  }
-    logSales("url",url);
+ 
+//    logSales("url",url);
   // == -- Initiate the OAuth / Api Call with the given variables -- == \\ 
   var data = getData(offset,url,endPoint,type);
-  logSData("data Length", data.length);
-    for( var row in data){
-    fixDates(row);
-    getNames(row,worker);
-    fixItems(row);
-  }
+  if(data.length>=0 ){
+  for(var i = 0; i<data.length; i++){
+      var row = data[i];
+//  logSales("Data Row",row);
+    getNames(row);
+//       fixItems(row);
+       fixDates(row);
+  }}
   // == -- Make the call to insert the rows needed for the new data and insert the data -- == \\ 
   insertData(sheet,data);
 }
@@ -131,13 +134,26 @@ logSales("saleLine Offset",saleOffset);
 ///////////////////////////////////////////////////////////////////////////////////////
 // Gets All sale ID tags and finds the largest in hte column
 ///////////////////////////////////////////////////////////////////////////////////////
-function getCurrentSaleID(sheetName,ssID){
-  var ss = SpreadsheetApp.openById(ssID);
-  var sheet = ss.getSheetByName(sheetName);
-  var headers = sheet.getRange(1,1,1,ss.getLastColumn()).getValues();
-  var colIndex = headers[0].indexOf("saleLineID")+1 || headers[0].indexOf("saleID")+1
+function getCurrentSaleID(sheet,ssID){
+//  var ss = SpreadsheetApp.openById(ssID);
+//  var sheet = ss.getSheetByName(sheetName);
+  var headers = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues();
+  var colIndex = headers[0].indexOf("saleID")+1;
   var column = sheet.getRange(2, colIndex,sheet.getLastRow()).getValues().sort(function(a, b){return a-b}).pop();
   var saleID = Math.max.apply(null, column);
-    logSales("returned Sale ID from the Get Sale ID Function",saleID);
+    log("returned Sale ID from the Get Sale ID Function",saleID);
   return saleID
+}
+
+
+
+function getCurrentSaleLineID(sheet,ssID){
+//  var ss = SpreadsheetApp.openById(ssID);
+//  var sheet = ss.getSheetByName(sheetName);
+  var headers = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues();
+  var colIndex = headers[0].indexOf("saleLineID")+1;
+  var column = sheet.getRange(2, colIndex,sheet.getLastRow()).getValues().sort(function(a, b){return a-b}).pop();
+  var saleLineID = Math.max.apply(null, column);
+    log("returned Sale ID from the Get Sale ID Function",saleLineID);
+  return saleLineID
 }

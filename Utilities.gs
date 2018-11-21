@@ -72,6 +72,24 @@ function updateSaleID(name,saleOffset){
   store(name,obj);
 }
 
+function updateSaleLineID(name,saleOffset){
+  var obj = recal(name);
+  obj.saleLineID = saleOffset;
+  store(name,obj);
+}
+
+function updateOrderID(name,orderOffset){
+  var obj = recal(name);
+  obj.orderID = orderOffset;
+  store(name,obj);
+}
+
+function updateOrderLineID(name,orderOffset){
+  var obj = recal(name);
+  obj.orderLineID = orderOffset;
+  store(name,obj);
+}
+
 /**
 *
 *  Reset - Gets the the Object key from a user promt and Deletes the Property
@@ -101,14 +119,14 @@ function getUserInput(){
   return shopName
 }
 
-/**
-*
-* == -- template calls for spead Sheet templates -- == 
-*
-*/
-function templateSale(){
-  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Sale');
-}
-function templateEmployee(){
-  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Employee');
-}
+///**
+//*
+//* == -- template calls for spead Sheet templates -- == 
+//*
+//*/
+//function templateSale(){
+//  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Sale');
+//}
+//function templateEmployee(){
+//  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Employee');
+//}

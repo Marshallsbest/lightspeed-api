@@ -59,15 +59,19 @@ function getEmployeeData(employee, endPoint, clear){
     // == -- Make the call to insert the rows needed for the new data and insert the data -- == \\ 
     if(data){
       insertData(sheet,data);}else{log("No data Fouund to insert", data)}
+  var names = new DataObject("employeeID","firstName","Employee")
+  return names
   };
 
 ///////////////////////////////////////////////////////////////////////
 // == -- Retrieve Emplyee names by ID and add to the row -- == \\ 
 ///////////////////////////////////////////////////////////////////////
-function getNames(dataRow, worker){
-  if(dataRow.employeeID){
-    var ID = dataRow.employeeID
-    dataRow.firstName = worker[ID]
+function getNames(dataRow){
+  var names = recal("FirstName") || employeeData();
+if(dataRow.employeeID){
+    var ID = dataRow.employeeID;
+    dataRow.firstName = names[ID];
   };
+//  log("First Name Function Called", dataRow.firstName)
   return dataRow
 };

@@ -38,6 +38,7 @@ function  insertData(sheet,data){
     setRowsData(sheet, data);
   } else {
     if(UIONOFF){ ss.toast("Data Not Defined! Nothing to be Written to Sheet");}
+    formatColumns(sheet);
   };
 };
 
@@ -157,35 +158,53 @@ function modifySheets(action) {
 ///////////////////////////////////////////////////////////////////////////////////////
 function formatColumns(sheet){
   var s = sheet;
+  
   var headers = s.getRange(1,1,1,s.getLastColumn()).getValues();
-  if(headers[0]["createDay"]){
-    var colIndex = headers[0].indexOf("createDay")+1;
-    var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("DDDD");}
-  if(headers[0]["createMonth"]){
-    var colIndex = headers[0].indexOf("createMonth")+1;
-    var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("MMMM");}
-  if(headers[0]["createTime"]){
-    var colIndex = headers[0].indexOf("createTime")+1;
-    var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("yyyy-MM-dd");}
-  if(headers[0]["createWeek"]){
-    var colIndex = headers[0].indexOf("createWeek")+1;
-    var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("###");}
-  if(headers[0]["time"]){
-    var colIndex = headers[0].indexOf("time")+1;
-    var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("HH:mm:ss");}
-  if(headers[0]["HST"]){
-    var colIndex = headers[0].indexOf("HST")+1;
-    var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("##%");}
-  if(headers[0]["calcDiscount"]){
-    var colIndex = headers[0].indexOf("calcDiscount")+1 ;
-    var column = s.getRange(2, colIndex,s.getLastRow(),10).setNumberFormat("$#,##0.00");}
-  if(headers[0]["displayableSubtotal"]){ 
-    var colIndex  = headers[0].indexOf("displayableSubtotal")+1;
-    var column = s.getRange(2, colIndex,s.getLastRow(),10).setNumberFormat("$#,##0.00");}
-  if(headers[0]["unitPrice"]){ 
-    var colIndex = headers[0].indexOf("unitPrice")+1;
-    var column = s.getRange(2, colIndex,s.getLastRow(),3).setNumberFormat("$#,##0.00");}
-  if(headers[0]["total"]){ 
-    var colIndex = headers[0].indexOf("total")+1;
-    var column = s.getRange(2, colIndex,s.getLastRow(),3).setNumberFormat("$#,##0.00");}
-}
+  for(var i=0; i<headers[0].length;i++){
+    log("Format HEADERS :", headers);
+    var columnNames = headers[0][i]
+    log("Format COLUMN NAMED :", headers[0][i]);
+    if(columnNames == 'itemID'){
+      var colIndex = headers[0].indexOf("itemID")+1;
+      var column = s.getRange(2, colIndex,s.getLastRow(),6).setNumberFormat("@@@");
+    }  else {
+      if(columnNames == 'shopID'){
+        var colIndex = headers[0].indexOf("shopID")+1;
+        var column = s.getRange(2, colIndex,s.getLastRow(),6).setNumberFormat("#####00");}
+      else {
+      if(columnNames == 'createMonth'){
+        var colIndex = headers[0].indexOf("createMonth")+1;
+        var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("MMMM");}
+     else {
+      if(columnNames == 'createTime'){
+        var colIndex = headers[0].indexOf("createTime")+1;
+        var column = s.getRange(2, colIndex,s.getLastRow(),3).setNumberFormat("yyyy-MM-dd");}
+     else {
+      if(columnNames == "completeTime"){
+        var colIndex = headers[0].indexOf("createWeek")+1;
+        var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("###");}
+     else {
+      if(columnNames == "time"){
+        var colIndex = headers[0].indexOf("time")+1;
+        var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("HH:mm:ss");}
+     else {
+       if(columnNames == "HST"){
+        var colIndex = headers[0].indexOf("HST")+1;
+        var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("##%");}
+        else {
+       if(columnNames == "discountPercent"){
+        var colIndex = headers[0].indexOf("discountPercent")+1;
+        var column = s.getRange(2, colIndex,s.getLastRow(),4).setNumberFormat("##%");}
+     else {
+      if(columnNames == "calcDiscount"){
+        var colIndex = headers[0].indexOf("calcDiscount")+1 ;
+        var column = s.getRange(2, colIndex,s.getLastRow(),9).setNumberFormat("$#,##0.00");}
+     else {
+      if(columnNames == "unitPrice"){
+        var colIndex = headers[0].indexOf("unitPrice")+1;
+        var column = s.getRange(2, colIndex,s.getLastRow(),10).setNumberFormat("$#,##0.00");}
+        else {
+      if(columnNames == "unitQuantity"){ 
+        var colIndex = headers[0].indexOf("unitQuantity")+1;
+        var column = s.getRange(2, colIndex,s.getLastRow()).setNumberFormat("##");}
+        }}}}}}}}}}}}
